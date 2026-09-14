@@ -1,0 +1,220 @@
+{
+  "namespace": "openverb.music_atlas",
+  "version": "0.1.0",
+  "description": "Read-only verbs for the World Music Atlas on Open Music Atlas: find places and their songs, list editions, get GeoJSON and embeddable players. No verb changes anything.",
+  "verbs": [
+    {
+      "name": "find_place",
+      "category": "places",
+      "description": "Find one place in the atlas by name, ISO 3166-1 alpha-2 code or slug. Case- and accent-insensitive.",
+      "params": {
+        "query": {
+          "type": "string",
+          "description": "A place name ('Jamaica', 'cote d'ivoire'), ISO code ('JM') or slug ('jamaica').",
+          "required": true
+        }
+      },
+      "returns": {
+        "place": {
+          "type": "object",
+          "description": "The place: slug, name, isoCode, kind, continent, region, coordinates [lon, lat], isDisputed, pageUrl."
+        }
+      },
+      "destructive": false,
+      "requires_confirmation": false
+    },
+    {
+      "name": "search_places",
+      "category": "places",
+      "description": "Places whose name contains the query, names starting with it first.",
+      "params": {
+        "query": {
+          "type": "string",
+          "description": "Part of a place name, e.g. 'guinea'.",
+          "required": true
+        }
+      },
+      "returns": {
+        "places": {
+          "type": "array<object>",
+          "description": "Matching places."
+        },
+        "count": {
+          "type": "number",
+          "description": "How many places matched."
+        }
+      },
+      "destructive": false,
+      "requires_confirmation": false
+    },
+    {
+      "name": "list_places",
+      "category": "places",
+      "description": "List places in listening order, optionally narrowed to a UN M49 continent, region or kind.",
+      "params": {
+        "continent": {
+          "type": "string",
+          "description": "A continent, e.g. 'Africa', 'Americas', 'Asia', 'Europe', 'Oceania', 'Antarctica'.",
+          "required": false
+        },
+        "region": {
+          "type": "string",
+          "description": "A region, e.g. 'Caribbean', 'Western Africa', 'South-eastern Asia'.",
+          "required": false
+        },
+        "kind": {
+          "type": "enum",
+          "description": "The kind of place. 'place' is used where classification is contested.",
+          "enum": ["country", "territory", "continent", "place"],
+          "required": false
+        }
+      },
+      "returns": {
+        "places": {
+          "type": "array<object>",
+          "description": "The places."
+        },
+        "count": {
+          "type": "number",
+          "description": "How many places."
+        }
+      },
+      "destructive": false,
+      "requires_confirmation": false
+    },
+    {
+      "name": "get_place_song",
+      "category": "songs",
+      "description": "A place's song in an edition: its title, description, musical style, page and embeddable player.",
+      "params": {
+        "place": {
+          "type": "string",
+          "description": "The place's name, ISO code or slug.",
+          "required": true
+        },
+        "edition": {
+          "type": "string",
+          "description": "The edition's slug. Defaults to the 2026 Founding Edition ('2026-founding').",
+          "required": false
+        }
+      },
+      "returns": {
+        "place": {
+          "type": "object",
+          "description": "The place."
+        },
+        "edition": {
+          "type": "object",
+          "description": "The edition: slug, name, year, version, frozenAt."
+        },
+        "entry": {
+          "type": "object",
+          "description": "The song: title, description, style, curatorsSelection, pageUrl, embedUrl."
+        }
+      },
+      "destructive": false,
+      "requires_confirmation": false
+    },
+    {
+      "name": "get_embed_player",
+      "category": "songs",
+      "description": "The embeddable player for a place's song: its URL and a ready-to-use iframe.",
+      "params": {
+        "place": {
+          "type": "string",
+          "description": "The place's name, ISO code or slug.",
+          "required": true
+        },
+        "edition": {
+          "type": "string",
+          "description": "The edition's slug. Defaults to '2026-founding'.",
+          "required": false
+        },
+        "width": {
+          "type": "string",
+          "description": "The frame's width, e.g. '100%' or '300'. Defaults to '100%'.",
+          "required": false
+        },
+        "height": {
+          "type": "string",
+          "description": "The frame's height. Defaults to '212', which fits the player.",
+          "required": false
+        }
+      },
+      "returns": {
+        "embed_url": {
+          "type": "string",
+          "description": "The player's URL."
+        },
+        "html": {
+          "type": "string",
+          "description": "An iframe for the player."
+        }
+      },
+      "destructive": false,
+      "requires_confirmation": false
+    },
+    {
+      "name": "list_editions",
+      "category": "editions",
+      "description": "Every published edition of the World Music Atlas, newest first.",
+      "params": {},
+      "returns": {
+        "editions": {
+          "type": "array<object>",
+          "description": "Editions: slug, name, collection, year, version, styleConstraint, frozenAt, entryCount, pageUrl."
+        },
+        "count": {
+          "type": "number",
+          "description": "How many editions."
+        }
+      },
+      "destructive": false,
+      "requires_confirmation": false
+    },
+    {
+      "name": "get_edition",
+      "category": "editions",
+      "description": "An edition and every song in it, in listening order.",
+      "params": {
+        "edition": {
+          "type": "string",
+          "description": "The edition's slug. Defaults to '2026-founding'.",
+          "required": false
+        }
+      },
+      "returns": {
+        "edition": {
+          "type": "object",
+          "description": "The edition."
+        },
+        "entries": {
+          "type": "array<object>",
+          "description": "Each place and its song."
+        }
+      },
+      "destructive": false,
+      "requires_confirmation": false
+    },
+    {
+      "name": "get_geojson",
+      "category": "maps",
+      "description": "An edition as a GeoJSON FeatureCollection: one point per place, with the place and its song as properties.",
+      "params": {
+        "edition": {
+          "type": "string",
+          "description": "The edition's slug. Defaults to '2026-founding'.",
+          "required": false
+        }
+      },
+      "returns": {
+        "geojson": {
+          "type": "object",
+          "description": "A GeoJSON FeatureCollection, EPSG:4326."
+        }
+      },
+      "destructive": false,
+      "requires_confirmation": false
+    }
+  ]
+}
