@@ -1,7 +1,7 @@
 {
   "name": "@openverb/music-atlas",
-  "version": "0.1.0",
-  "description": "The official SDK for Open Music Atlas: the World Music Atlas's places, songs, editions, GeoJSON and embeddable players, with OpenVerb verbs for AI agents.",
+  "version": "0.2.0",
+  "description": "The official SDK for Open Music Atlas: the World Music Atlas's places and the Solar System's bodies, their songs, editions, GeoJSON and embeddable players, with OpenVerb verbs for AI agents.",
   "keywords": [
     "openverb",
     "open-music-atlas",
@@ -15,7 +15,11 @@
     "maplibre",
     "ai",
     "agent",
-    "verbs"
+    "verbs",
+    "solar-system",
+    "astronomy",
+    "planets",
+    "space"
   ],
   "author": "Roman Hancel <roman@romanhancel.com>",
   "homepage": "https://openmusicatlas.org/developers",

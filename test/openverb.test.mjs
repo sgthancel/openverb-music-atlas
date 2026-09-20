@@ -15,8 +15,13 @@ const JAMAICA = { slug: "jamaica", name: "Jamaica", isoCode: "JM", kind: "countr
 const EDITION = { slug: "2026-founding", name: "World Music Atlas — 2026 Founding Edition", year: 2026, version: 1, frozenAt: "2026-09-13T23:36:12.000Z" }
 const ENTRY = { title: "Island of One People", description: null, style: "reggae", curatorsSelection: false, pageUrl: JAMAICA.pageUrl, embedUrl: "https://openmusicatlas.org/embed/jamaica/2026-founding" }
 
+const EUROPA = { slug: "europa", name: "Europa", kind: "moon", zone: "Outer System", orbits: "Jupiter", title: "An Ocean With a Lid", description: null, style: null, facts: ["A salt-water ocean under ice"], takes: 1, pageUrl: "https://openmusicatlas.org/solar-system/europa", embedUrl: "https://openmusicatlas.org/embed/europa/solar-2026-founding" }
+const SOLAR_EDITION_INFO = { slug: "solar-2026-founding", name: "Solar System — 2026 Founding Edition", collection: "solar-system", year: 2026, version: 1, styleConstraint: null, description: null, frozenAt: "2026-09-20T12:02:51.319Z", pageUrl: "https://openmusicatlas.org/solar-system" }
+
 const routes = {
   "/api/v1/places": { places: [JAMAICA] },
+  "/api/v1/solar-system": { collection: "solar-system", edition: SOLAR_EDITION_INFO, count: 1, bodies: [EUROPA] },
+  "/api/v1/solar-system/europa": { body: EUROPA, edition: SOLAR_EDITION_INFO, orbits: { slug: "jupiter", name: "Jupiter" }, satellites: [], takes: [] },
   "/api/v1/places/jamaica": { place: JAMAICA, entries: [{ edition: EDITION, entry: ENTRY }] },
   "/api/v1/editions": { editions: [{ ...EDITION, collection: "world-music-atlas", styleConstraint: null, entryCount: 1, pageUrl: "https://openmusicatlas.org/editions/2026-founding" }] },
 }
@@ -97,4 +102,28 @@ test("registerMusicAtlasVerbs works on an executor you created yourself", async 
   registerMusicAtlasVerbs(ex, new OpenMusicAtlas({ fetch: fakeFetch }))
   const r = await ex.execute({ verb: "find_place", params: { query: "jamaica" } })
   assert.equal(r.data.place.slug, "jamaica")
+})
+
+test("the Solar System verbs find a body, its song and the whole collection", async () => {
+  const ex = executor()
+  const found = await ex.execute({ verb: "find_body", params: { query: "europa" } })
+  assert.equal(found.data.body.orbits, "Jupiter")
+
+  const song = await ex.execute({ verb: "get_body_song", params: { body: "Europa" } })
+  assert.equal(song.data.body.title, "An Ocean With a Lid")
+  assert.deepEqual(song.data.body.facts, ["A salt-water ocean under ice"])
+  assert.equal(song.data.orbits.name, "Jupiter")
+
+  const moons = await ex.execute({ verb: "list_bodies", params: { kind: "moon" } })
+  assert.equal(moons.data.count, 1)
+
+  const all = await ex.execute({ verb: "get_solar_system", params: {} })
+  assert.equal(all.data.edition.slug, "solar-2026-founding")
+  assert.equal(all.data.count, 1)
+})
+
+test("a body that is not in the atlas is an error, not an empty answer", async () => {
+  const r = await executor().execute({ verb: "find_body", params: { query: "nibiru" } })
+  assert.equal(r.status, "error")
+  assert.match(r.error_message, /No body of the Solar System matches/)
 })

@@ -1,7 +1,7 @@
 {
   "namespace": "openverb.music_atlas",
-  "version": "0.1.0",
-  "description": "Read-only verbs for the World Music Atlas on Open Music Atlas: find places and their songs, list editions, get GeoJSON and embeddable players. No verb changes anything.",
+  "version": "0.2.0",
+  "description": "Read-only verbs for Open Music Atlas: the World Music Atlas's places and their songs, the thirty bodies of the Solar System and theirs, editions, GeoJSON and embeddable players. No verb changes anything.",
   "verbs": [
     {
       "name": "find_place",
@@ -65,7 +65,12 @@
         "kind": {
           "type": "enum",
           "description": "The kind of place. 'place' is used where classification is contested.",
-          "enum": ["country", "territory", "continent", "place"],
+          "enum": [
+            "country",
+            "territory",
+            "continent",
+            "place"
+          ],
           "required": false
         }
       },
@@ -211,6 +216,114 @@
         "geojson": {
           "type": "object",
           "description": "A GeoJSON FeatureCollection, EPSG:4326."
+        }
+      },
+      "destructive": false,
+      "requires_confirmation": false
+    },
+    {
+      "name": "find_body",
+      "category": "solar_system",
+      "description": "Find one body of the Solar System by name or slug: a planet, a moon, a dwarf planet, a belt, the comet or the spacecraft. Case- and accent-insensitive, and a leading 'the' is ignored.",
+      "params": {
+        "query": {
+          "type": "string",
+          "description": "A body's name ('Europa', 'the Sun', \"Halley's Comet\") or slug ('europa').",
+          "required": true
+        }
+      },
+      "returns": {
+        "body": {
+          "type": "object",
+          "description": "The body: slug, name, kind, zone, orbits, title, description, style, facts, takes, pageUrl, embedUrl."
+        }
+      },
+      "destructive": false,
+      "requires_confirmation": false
+    },
+    {
+      "name": "list_bodies",
+      "category": "solar_system",
+      "description": "Every body of the Solar System, outward from the Sun, optionally narrowed by kind, zone or what it orbits.",
+      "params": {
+        "kind": {
+          "type": "string",
+          "description": "star, planet, moon, dwarf-planet, region, comet or spacecraft.",
+          "required": false
+        },
+        "zone": {
+          "type": "string",
+          "description": "Where it sits, e.g. 'Outer System', 'Kuiper Belt'.",
+          "required": false
+        },
+        "orbits": {
+          "type": "string",
+          "description": "What it goes round, e.g. 'Jupiter'.",
+          "required": false
+        }
+      },
+      "returns": {
+        "bodies": {
+          "type": "array<object>",
+          "description": "The matching bodies."
+        },
+        "count": {
+          "type": "number",
+          "description": "How many matched."
+        }
+      },
+      "destructive": false,
+      "requires_confirmation": false
+    },
+    {
+      "name": "get_body_song",
+      "category": "solar_system",
+      "description": "The song written for one body, with the established astronomy it was written from, what it orbits and what orbits it.",
+      "params": {
+        "body": {
+          "type": "string",
+          "description": "A body's name or slug, e.g. 'Europa'.",
+          "required": true
+        }
+      },
+      "returns": {
+        "body": {
+          "type": "object",
+          "description": "The body and its song, including a facts array."
+        },
+        "orbits": {
+          "type": "object",
+          "description": "What it goes round, or null."
+        },
+        "satellites": {
+          "type": "array<object>",
+          "description": "What goes round it."
+        },
+        "takes": {
+          "type": "array<string>",
+          "description": "The labels of the takes kept, when more than one was."
+        }
+      },
+      "destructive": false,
+      "requires_confirmation": false
+    },
+    {
+      "name": "get_solar_system",
+      "category": "solar_system",
+      "description": "The whole Solar System collection: the edition and all thirty bodies, outward from the Sun.",
+      "params": {},
+      "returns": {
+        "edition": {
+          "type": "object",
+          "description": "The Solar System edition."
+        },
+        "bodies": {
+          "type": "array<object>",
+          "description": "Every body, outward from the Sun."
+        },
+        "count": {
+          "type": "number",
+          "description": "How many bodies."
         }
       },
       "destructive": false,

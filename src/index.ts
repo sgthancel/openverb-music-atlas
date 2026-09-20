@@ -1,5 +1,6 @@
 import type {
   AtlasFeatureCollection,
+  BodyFilter,
   ClientOptions,
   Edition,
   EditionDetail,
@@ -7,6 +8,9 @@ import type {
   Place,
   PlaceDetail,
   PlaceFilter,
+  SolarBody,
+  SolarBodyDetail,
+  SolarCollection,
 } from "./types"
 
 export type * from "./types"
@@ -16,6 +20,9 @@ export const DEFAULT_BASE_URL = "https://openmusicatlas.org"
 
 /** The first edition: the World Music Atlas — 2026 Founding Edition. */
 export const FOUNDING_EDITION = "2026-founding"
+
+/** The Solar System — 2026 Founding Edition: one song for each of the thirty bodies. */
+export const SOLAR_EDITION = "solar-2026-founding"
 
 /** The height, in pixels, at which the embeddable player fits without scrolling. */
 export const EMBED_HEIGHT = 212
@@ -36,6 +43,7 @@ export class OpenMusicAtlasError extends Error {
 }
 
 type PlaceRef = string | Pick<Place, "slug">
+type BodyRefArg = string | Pick<SolarBody, "slug">
 
 /** Lower-case and strip accents, so "Côte d'Ivoire" matches "cote d'ivoire". */
 const fold = (s: string) =>
@@ -65,6 +73,7 @@ export class OpenMusicAtlas {
   private readonly customFetch?: typeof fetch
   private readonly headers: Record<string, string>
   private placesRequest: Promise<Place[]> | null = null
+  private solarRequest: Promise<SolarCollection> | null = null
 
   constructor(options: ClientOptions = {}) {
     this.baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "")
@@ -120,6 +129,61 @@ export class OpenMusicAtlas {
     return this.request<AtlasFeatureCollection>(`/api/v1/editions/${encodeURIComponent(slug)}.geojson`, {
       nullOn404: true,
     })
+  }
+
+  /* ------------------------------------------------------- the Solar System */
+
+  /**
+   * The Solar System collection: the edition and every body, outward from the
+   * Sun. Fetched once per client and then served from memory.
+   */
+  async solarSystem(): Promise<SolarCollection> {
+    if (!this.solarRequest) {
+      this.solarRequest = this.request<SolarCollection>("/api/v1/solar-system")
+      this.solarRequest.catch(() => (this.solarRequest = null))
+    }
+    return this.solarRequest
+  }
+
+  /**
+   * Every body of the Solar System, outward from the Sun; pass a filter to
+   * narrow it — `{ kind: "moon" }`, `{ orbits: "Jupiter" }`.
+   */
+  async bodies(filter: BodyFilter = {}): Promise<SolarBody[]> {
+    const { bodies } = await this.solarSystem()
+    const zone = filter.zone ? fold(filter.zone) : null
+    const orbits = filter.orbits ? fold(filter.orbits) : null
+    return bodies.filter(
+      (b) =>
+        (!filter.kind || b.kind === filter.kind) &&
+        (!zone || fold(b.zone ?? "") === zone) &&
+        (!orbits || fold(b.orbits ?? "") === orbits)
+    )
+  }
+
+  /** One body, with what it orbits and what orbits it, or null if there is no such body. */
+  async body(body: BodyRefArg): Promise<SolarBodyDetail | null> {
+    const slug = typeof body === "string" ? body : body.slug
+    return this.request<SolarBodyDetail>(`/api/v1/solar-system/${encodeURIComponent(slug)}`, { nullOn404: true })
+  }
+
+  /**
+   * One body by slug ("europa") or name ("Europa", "the sun", "Halley's
+   * Comet"), or null. Case- and accent-insensitive, and a leading "the" is
+   * ignored, so "sun" finds The Sun.
+   */
+  async findBody(query: string): Promise<SolarBody | null> {
+    const q = fold(query)
+    if (!q) return null
+    const bare = (s: string) => s.replace(/^the\s+/, "")
+    const all = await this.bodies()
+    return (
+      all.find((b) => b.slug === q) ??
+      all.find((b) => fold(b.name) === q) ??
+      all.find((b) => bare(fold(b.name)) === bare(q)) ??
+      all.find((b) => bare(fold(b.name)).startsWith(bare(q))) ??
+      null
+    )
   }
 
   /* -------------------------------------------------------------- finding */
@@ -199,7 +263,9 @@ export class OpenMusicAtlas {
       loading: options.loading ?? "lazy",
       style: "border:0;border-radius:12px",
       allow: "autoplay; encrypted-media",
-      title: options.title ?? `${name} — World Music Atlas`,
+      title:
+        options.title ??
+        `${name} — ${edition === SOLAR_EDITION ? "the Solar System, Open Music Atlas" : "World Music Atlas"}`,
     }
   }
 

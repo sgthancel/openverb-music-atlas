@@ -1,6 +1,7 @@
 /**
- * The World Music Atlas as OpenVerb verbs, so an AI agent built on OpenVerb
- * can find places, their songs, editions, GeoJSON and players.
+ * Open Music Atlas as OpenVerb verbs, so an AI agent built on OpenVerb can
+ * find places and the bodies of the Solar System, their songs, editions,
+ * GeoJSON and players.
  *
  * ```ts
  * import { createMusicAtlasExecutor } from "@openverb/music-atlas/openverb"
@@ -17,11 +18,19 @@ import library from "../openverb.music_atlas.json"
 // By package name, not "./index": the built file then shares the main entry's
 // client instead of carrying its own copy, whose class TypeScript would treat
 // as a different type from the OpenMusicAtlas you import and pass in.
-import { atlas, FOUNDING_EDITION, type OpenMusicAtlas, type Place, type PlaceKind } from "@openverb/music-atlas"
+import {
+  atlas,
+  FOUNDING_EDITION,
+  type BodyKind,
+  type OpenMusicAtlas,
+  type Place,
+  type PlaceKind,
+  type SolarBody,
+} from "@openverb/music-atlas"
 
 export const MUSIC_ATLAS_NAMESPACE = "openverb.music_atlas"
 
-/** The verb library: everything an AI may do with the World Music Atlas. */
+/** The verb library: everything an AI may do with Open Music Atlas. */
 // The JSON's inferred type is narrower than VerbLibrary's open records, hence via unknown.
 export const musicAtlasLibrary: VerbLibrary = loadLibrary(library as unknown as VerbLibrary)
 
@@ -85,6 +94,45 @@ export function registerMusicAtlasVerbs(executor: VerbRegistrar, client: OpenMus
       html: client.embedHtml(found.place, slug, { width: text(width), height: text(height) }),
     })
   })
+
+  /* ----------------------------------------------------- the Solar System */
+
+  const findBodyOrFail = async (
+    verb: string,
+    query: unknown
+  ): Promise<{ body: SolarBody } | { error: ActionResult }> => {
+    const body = await client.findBody(String(query ?? ""))
+    return body ? { body } : { error: fail(verb, `No body of the Solar System matches "${query}".`) }
+  }
+
+  executor.register("find_body", async ({ query }) => {
+    const found = await findBodyOrFail("find_body", query)
+    return "error" in found ? found.error : ok("find_body", { body: found.body })
+  })
+
+  executor.register("list_bodies", async ({ kind, zone, orbits }) => {
+    const bodies = await client.bodies({
+      kind: text(kind) as BodyKind | undefined,
+      zone: text(zone),
+      orbits: text(orbits),
+    })
+    return ok("list_bodies", { bodies, count: bodies.length })
+  })
+
+  executor.register("get_body_song", async ({ body }) => {
+    const found = await findBodyOrFail("get_body_song", body)
+    if ("error" in found) return found.error
+    const detail = await client.body(found.body.slug)
+    if (!detail) return fail("get_body_song", `${found.body.name} has no song.`)
+    return ok("get_body_song", detail)
+  })
+
+  executor.register("get_solar_system", async () => {
+    const { edition, bodies } = await client.solarSystem()
+    return ok("get_solar_system", { edition, bodies, count: bodies.length })
+  })
+
+  /* ------------------------------------------------------------- editions */
 
   executor.register("list_editions", async () => {
     const editions = await client.editions()

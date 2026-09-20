@@ -114,6 +114,83 @@ export interface AtlasFeatureCollection {
   features: AtlasFeature[]
 }
 
+/* ------------------------------------------------------- the Solar System */
+
+/** What kind of thing a body of the Solar System is. */
+export type BodyKind = "star" | "planet" | "moon" | "dwarf-planet" | "region" | "comet" | "spacecraft"
+
+/** One body of the Solar System, with the song written for it. */
+export interface SolarBody {
+  /** Stable identifier, e.g. "europa". */
+  slug: string
+  name: string
+  kind: BodyKind
+  /** Where it sits, e.g. "Inner System", "Kuiper Belt". */
+  zone: string | null
+  /** The body it goes round, e.g. "Jupiter" for Europa. Null for the Sun and the planets. */
+  orbits: string | null
+  title: string
+  description: string | null
+  /** The song's musical style. */
+  style: string | null
+  /** The established astronomy the song was written from. */
+  facts: string[]
+  /** How many takes were kept. One for all but a few. */
+  takes: number
+  /** The body's page on Open Music Atlas. */
+  pageUrl: string
+  /** The embeddable player for its song. */
+  embedUrl: string
+}
+
+/** The Solar System edition. */
+export interface SolarEdition {
+  slug: string
+  name: string
+  collection: string
+  year: number
+  version: number
+  styleConstraint: string | null
+  description: string | null
+  /** When the edition was frozen (ISO 8601). A frozen edition's songs never change. */
+  frozenAt: string | null
+  pageUrl: string
+}
+
+/** The whole collection: the edition and every body, outward from the Sun. */
+export interface SolarCollection {
+  collection: string
+  edition: SolarEdition | null
+  count: number
+  bodies: SolarBody[]
+}
+
+/** A body by name, as it appears beside another. */
+export interface BodyRef {
+  slug: string
+  name: string
+}
+
+/** One body, with what it orbits and what orbits it. */
+export interface SolarBodyDetail {
+  body: SolarBody
+  edition: { slug: string; name: string; year: number; frozenAt: string | null }
+  /** What this body goes round, when it is a moon. */
+  orbits: BodyRef | null
+  /** What goes round this body. */
+  satellites: BodyRef[]
+  /** The labels of the takes kept, when more than one was. */
+  takes: string[]
+}
+
+export interface BodyFilter {
+  kind?: BodyKind
+  /** Where it sits, e.g. "Outer System" (case-insensitive). */
+  zone?: string
+  /** What it goes round, e.g. "Jupiter" (case-insensitive). */
+  orbits?: string
+}
+
 export interface ClientOptions {
   /** Defaults to https://openmusicatlas.org. */
   baseUrl?: string

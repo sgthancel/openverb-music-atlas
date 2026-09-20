@@ -1,7 +1,14 @@
 // Offline tests: the network is replaced with a fake fetch.
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { OpenMusicAtlas, OpenMusicAtlasError, FOUNDING_EDITION, EMBED_HEIGHT, atlas } from "../dist/index.js"
+import {
+  OpenMusicAtlas,
+  OpenMusicAtlasError,
+  FOUNDING_EDITION,
+  SOLAR_EDITION,
+  EMBED_HEIGHT,
+  atlas,
+} from "../dist/index.js"
 
 const PLACES = [
   { slug: "jamaica", name: "Jamaica", isoCode: "JM", kind: "country", continent: "Americas", region: "Caribbean", coordinates: [-77.32, 18.14], isDisputed: false, pageUrl: "https://openmusicatlas.org/place/jamaica" },
@@ -156,4 +163,56 @@ test("importing the package makes no request, even without fetch", async () => {
   } finally {
     globalThis.fetch = saved
   }
+})
+
+/* ---------------------------------------------------------- Solar System */
+
+const BODIES = [
+  { slug: "sun", name: "The Sun", kind: "star", zone: "The centre", orbits: null, title: "Eight Minutes of Light", description: null, style: null, facts: ["Ninety-nine point eight per cent of the mass here"], takes: 1, pageUrl: "https://openmusicatlas.org/solar-system/sun", embedUrl: "https://openmusicatlas.org/embed/sun/solar-2026-founding" },
+  { slug: "europa", name: "Europa", kind: "moon", zone: "Outer System", orbits: "Jupiter", title: "An Ocean With a Lid", description: null, style: null, facts: ["A salt-water ocean under ice"], takes: 1, pageUrl: "https://openmusicatlas.org/solar-system/europa", embedUrl: "https://openmusicatlas.org/embed/europa/solar-2026-founding" },
+  { slug: "io", name: "Io", kind: "moon", zone: "Outer System", orbits: "Jupiter", title: "Four Hundred Mouths", description: null, style: null, facts: ["More than 400 volcanoes"], takes: 4, pageUrl: "https://openmusicatlas.org/solar-system/io", embedUrl: "https://openmusicatlas.org/embed/io/solar-2026-founding" },
+  { slug: "halleys-comet", name: "Halley's Comet", kind: "comet", zone: "Visitors", orbits: null, title: "See You in 2061", description: null, style: null, facts: ["Every 75 or 76 years"], takes: 1, pageUrl: "https://openmusicatlas.org/solar-system/halleys-comet", embedUrl: "https://openmusicatlas.org/embed/halleys-comet/solar-2026-founding" },
+]
+const SOLAR = { collection: "solar-system", edition: { slug: SOLAR_EDITION, name: "Solar System — 2026 Founding Edition", collection: "solar-system", year: 2026, version: 1, styleConstraint: null, description: null, frozenAt: "2026-09-20T12:02:51.319Z", pageUrl: "https://openmusicatlas.org/solar-system" }, count: 4, bodies: BODIES }
+
+test("solarSystem() fetches once and serves later calls from memory", async () => {
+  const { c, f } = client({ "/api/v1/solar-system": [200, SOLAR] })
+  assert.equal((await c.solarSystem()).edition.frozenAt, "2026-09-20T12:02:51.319Z")
+  assert.equal((await c.bodies()).length, 4)
+  assert.equal(f.calls.length, 1)
+})
+
+test("bodies() filters by kind, zone and what a body orbits, ignoring case", async () => {
+  const { c } = client({ "/api/v1/solar-system": [200, SOLAR] })
+  assert.deepEqual((await c.bodies({ kind: "moon" })).map((b) => b.slug), ["europa", "io"])
+  assert.deepEqual((await c.bodies({ orbits: "jupiter" })).map((b) => b.slug), ["europa", "io"])
+  assert.deepEqual((await c.bodies({ zone: "THE CENTRE" })).map((b) => b.slug), ["sun"])
+})
+
+test("findBody() matches slug and name, and ignores a leading 'the'", async () => {
+  const { c } = client({ "/api/v1/solar-system": [200, SOLAR] })
+  assert.equal((await c.findBody("europa"))?.name, "Europa")
+  assert.equal((await c.findBody("The Sun"))?.slug, "sun")
+  assert.equal((await c.findBody("sun"))?.slug, "sun")
+  assert.equal((await c.findBody("halley"))?.slug, "halleys-comet")
+  assert.equal(await c.findBody("pluto"), null)
+  assert.equal(await c.findBody(""), null)
+})
+
+test("body() returns one body, or null where there is none", async () => {
+  const { c } = client({
+    "/api/v1/solar-system/io": [200, { body: BODIES[2], edition: SOLAR.edition, orbits: { slug: "jupiter", name: "Jupiter" }, satellites: [], takes: ["First take", "Second take", "Third take", "Fourth take"] }],
+  })
+  const io = await c.body("io")
+  assert.equal(io?.orbits?.name, "Jupiter")
+  assert.equal(io?.takes.length, 4)
+  assert.equal(io?.body.facts.length, 1)
+  assert.equal(await c.body("nibiru"), null)
+})
+
+test("a body embeds like a place, titled for the collection it is in", () => {
+  const c = new OpenMusicAtlas({ fetch: () => assert.fail("no request expected") })
+  assert.equal(c.embedUrl("europa", SOLAR_EDITION), `https://openmusicatlas.org/embed/europa/${SOLAR_EDITION}`)
+  const html = c.embedHtml(BODIES[1], SOLAR_EDITION)
+  assert.match(html, /title="Europa — the Solar System, Open Music Atlas"/)
 })

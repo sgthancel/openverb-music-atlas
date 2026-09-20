@@ -1,11 +1,11 @@
 # @openverb/music-atlas
 
-The official SDK for [Open Music Atlas](https://openmusicatlas.org) — the world, mapped in music. Every place in the **World Music Atlas**, its song, editions, GeoJSON and embeddable players, in your code. Part of the [OpenVerb](https://openverb.org) developer ecosystem.
+The official SDK for [Open Music Atlas](https://openmusicatlas.org) — the world, mapped in music. Every place in the **World Music Atlas** and every body in the **Solar System**, their songs, editions, GeoJSON and embeddable players, in your code. Part of the [OpenVerb](https://openverb.org) developer ecosystem.
 
 - A thin, typed wrapper around the [Open Music Atlas API v1](https://openmusicatlas.org/developers)
 - No dependencies. Works in Node 18+, browsers, Deno and Bun
 - ES modules and CommonJS, with TypeScript types
-- OpenVerb verbs, so AI agents can explore the atlas
+- OpenVerb verbs, so AI agents can explore both collections
 
 ```bash
 npm install @openverb/music-atlas
@@ -46,6 +46,26 @@ await atlas.search("guinea")        // Guinea, Guinea-Bissau, Equatorial Guinea,
 `places()` is fetched once per client and served from memory afterwards, so `find()` and `search()` are cheap.
 
 Regions and continents follow the UN M49 scheme. Where a place's classification is contested, its `kind` is `"place"` and `isDisputed` is `true`; inclusion in the atlas is not a statement about sovereignty. See the [curatorial policy](https://openmusicatlas.org/curatorial-policy).
+
+## The Solar System
+
+A second collection: thirty bodies, one song each — the Sun, the planets, their great moons, the dwarf planets, the belts beyond, a comet and one spacecraft. Every body carries the established astronomy its song was written from, so you can show what is fact and what is interpretation.
+
+```js
+import { atlas, SOLAR_EDITION } from "@openverb/music-atlas"
+
+const europa = await atlas.findBody("Europa")
+console.log(europa.orbits)   // "Jupiter"
+console.log(europa.facts)    // ["A salt-water ocean under a shell of ice", ...]
+
+const { satellites, takes } = await atlas.body("jupiter")
+console.log(satellites.map((m) => m.name))  // ["Io", "Europa", "Ganymede", "Callisto"]
+
+const moons = await atlas.bodies({ orbits: "Jupiter" })
+const player = atlas.embedHtml("europa", SOLAR_EDITION)
+```
+
+`bodies()` filters by `kind` (`star`, `planet`, `moon`, `dwarf-planet`, `region`, `comet`, `spacecraft`), by `zone` and by what a body `orbits`. `findBody()` takes a slug or a name and ignores a leading "the", so `"sun"` finds The Sun. Where more than one take of a song was kept, `takes` counts them.
 
 ## Editions
 

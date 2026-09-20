@@ -67,3 +67,38 @@ test("an OpenVerb agent can ask for a place's song", async () => {
   assert.ok(result.data.entry.title)
   assert.equal(result.data.entry.embedUrl, atlas.embedUrl("jamaica"))
 })
+
+test("the live atlas has all thirty bodies of the Solar System, with their facts", async () => {
+  const { edition, bodies } = await atlas.solarSystem()
+  assert.equal(bodies.length, 30)
+  assert.ok(edition?.frozenAt, "the Solar System edition should be frozen")
+  assert.ok(bodies.every((b) => b.facts.length > 0), "every body should carry the facts its song was written from")
+  assert.ok(bodies.every((b) => b.pageUrl.startsWith("https://openmusicatlas.org/solar-system/")))
+})
+
+test("a body knows what it orbits and what orbits it", async () => {
+  const jupiter = await atlas.body("jupiter")
+  assert.deepEqual(
+    jupiter?.satellites.map((m) => m.name),
+    ["Io", "Europa", "Ganymede", "Callisto"]
+  )
+  const io = await atlas.body("io")
+  assert.equal(io?.orbits?.name, "Jupiter")
+  assert.equal(io?.body.takes, 4, "Io kept four takes")
+  assert.equal(io?.takes.length, 4)
+})
+
+test("nothing the Solar System endpoints return names the provider or carries an id", async () => {
+  const [all, one] = await Promise.all([atlas.solarSystem(), atlas.body("europa")])
+  for (const body of [all, one].map((x) => JSON.stringify(x))) {
+    assert.ok(!PROVIDER.test(body), "response mentions the provider")
+    assert.ok(!ID.test(body), "response contains an id")
+  }
+})
+
+test("an OpenVerb agent can ask for a body's song", async () => {
+  const executor = createMusicAtlasExecutor()
+  const result = await executor.execute({ verb: "get_body_song", params: { body: "the sun" } })
+  assert.equal(result.status, "success")
+  assert.ok(result.data.body.facts.length > 0)
+})
